@@ -1,0 +1,55 @@
+import secp256k1
+import hashlib
+import base58
+
+def generate_ethereum_wallets(num_wallets):
+    wallets = []
+    for _ in range(num_wallets):
+        # 生成随机私钥
+        private_key = secp256k1.PrivateKey()
+        private_key_hex = private_key.private_key.hex()
+
+        # 根据私钥生成公钥
+        public_key = private_key.pubkey.serialize(compressed=False)
+
+        # 生成公共地址
+        sha3_hash = hashlib.sha3_256(public_key[1:]).digest()
+        address = sha3_hash[-20:]
+
+        # 添加地址前缀和校验和
+        address_with_prefix = b"\x00" + address
+        checksum = hashlib.sha3_256(hashlib.sha3_256(address_with_prefix).digest()).digest()[:4]
+        address_with_checksum = address_with_prefix + checksum
+
+        # Base58编码
+        wallet_address = base58.b58encode(address_with_checksum).decode()
+
+        # 将私钥和地址添加到列表中（私钥保持为十六进制字符串）
+        wallets.append((private_key_hex, wallet_address))
+
+    return wallets
+
+def base58_to_hex(address):
+    # 解码Base58地址
+    decoded_address = base58.b58decode(address)
+
+    # 去除前缀和校验和，获取公共地址的字节序列
+    public_address = decoded_address[1:-4]
+
+    # 将字节序列转换为十六进制字符串
+    hex_address = public_address.hex()
+
+    return hex_address
+
+# 生成10个钱包
+num_wallets = 10
+generated_wallets = generate_ethereum_wallets(num_wallets)
+
+# 打印生成的钱包信息
+for private_key, wallet_address in generated_wallets:
+    # 将地址转换为十六进制字符串
+    hex_address = base58_to_hex(wallet_address)
+
+    print("私钥：", private_key)
+    print("地址（十六进制）：", hex_address)
+    print()
